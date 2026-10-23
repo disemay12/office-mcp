@@ -237,6 +237,38 @@ In every tool the `document` / `workbook` / `presentation` argument may be omitt
 - "Build a 5-slide deck from this text, add speaker notes, export to PDF."
 - "Read the open Word document and rewrite the *Summary* section shorter."
 
+## Slides
+
+A 9-slide deck walking through the same ground as this README — in five minutes. The deck is in Russian; the condensed English version of each slide is below.
+
+[![Slide 1](docs/presentation/slides/slide-01.png)](docs/presentation/pdf/office-mcp.pdf)
+
+| | | |
+|---|---|---|
+| [![Слайд 2](docs/presentation/slides/slide-02.png)](docs/presentation/slides/slide-02.png) | [![Слайд 3](docs/presentation/slides/slide-03.png)](docs/presentation/slides/slide-03.png) | [![Слайд 4](docs/presentation/slides/slide-04.png)](docs/presentation/slides/slide-04.png) |
+| [![Слайд 5](docs/presentation/slides/slide-05.png)](docs/presentation/slides/slide-05.png) | [![Слайд 6](docs/presentation/slides/slide-06.png)](docs/presentation/slides/slide-06.png) | [![Слайд 7](docs/presentation/slides/slide-07.png)](docs/presentation/slides/slide-07.png) |
+| [![Слайд 8](docs/presentation/slides/slide-08.png)](docs/presentation/slides/slide-08.png) | [![Слайд 9](docs/presentation/slides/slide-09.png)](docs/presentation/slides/slide-09.png) | [Download .pptx](docs/presentation/office-mcp.pptx) · [PDF](docs/presentation/pdf/office-mcp.pdf) |
+
+**01 · Title.** OpenCode × Microsoft Office: 53 tools, real files, Windows.
+
+**02 · Context.** A chat can talk but cannot touch a real Office file. The bridge turns tool calls into COM commands, so the document is produced by Office itself — styles, formulas and charts stay genuine instead of being emulated by an OpenXML parser.
+
+**03 · Architecture.** Chat → MCP server (stdio, 53 tools) → COM thread (STA, task queue) → Office. A tool call is queued, executed inside the application, and answered with JSON: one serialized path, predictable errors, no races.
+
+**04 · Execution.** Office servers are apartment-bound; a COM proxy cannot cross threads. Every operation runs on a single STA thread with a task queue. Busy calls are retried, a 180 s timeout catches modal dialogs, and a dead instance is detected by `RPC_E_DISCONNECTED` and recreated. Running apps are reused via `GetActiveObject`, new ones start with `DispatchEx`.
+
+**05 · Coordination.** The named mutex `Local\OfficeMCP_Bridge_Serial` serializes calls across processes. A second chat waits 60 s and then gets `Another Office MCP session is busy` instead of a corrupted document.
+
+**06 · Tools.** Word 19, Excel 17, PowerPoint 13, common 4. One contract: JSON results, explicit saving, PDF export that saves the source first.
+
+**07 · Files.** Relative paths resolve under `%USERPROFILE%\Documents\Office MCP`; unnamed files are created there; `OFFICE_MCP_BASE_DIR` overrides the base.
+
+**08 · Limits.** Full COM access under the current user — not a sandbox. PowerPoint is always visible; Word and Excel can be hidden. A modal dialog becomes a timeout, not a hang. No network ports: stdio only.
+
+**09 · Summary.** One chat, three applications, real files. MCP is the interface, COM is the execution, the mutex is the predictability.
+
+Source deck: [`docs/presentation/office-mcp.pptx`](docs/presentation/office-mcp.pptx) · PDF: [`docs/presentation/pdf/office-mcp.pdf`](docs/presentation/pdf/office-mcp.pdf) · full Russian walkthrough: [README.ru.md](README.ru.md#презентация).
+
 ## Testing
 
 ```powershell

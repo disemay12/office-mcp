@@ -237,6 +237,49 @@ claude mcp add office -- "C:\path\to\office-mcp\.venv\Scripts\python.exe" -X utf
 - «Сделай презентацию на 5 слайдов по этому тексту, с заметками, и экспортируй в PDF».
 - «Прочитай открытый документ Word и перепиши раздел "Итоги" короче».
 
+## Презентация
+
+Девять слайдов: от контекста до границ применимости — то же, что в README, но за пять минут.
+
+[![Слайд 1](docs/presentation/slides/slide-01.png)](docs/presentation/pdf/office-mcp.pdf)
+
+| | | |
+|---|---|---|
+| [![Слайд 2](docs/presentation/slides/slide-02.png)](docs/presentation/slides/slide-02.png) | [![Слайд 3](docs/presentation/slides/slide-03.png)](docs/presentation/slides/slide-03.png) | [![Слайд 4](docs/presentation/slides/slide-04.png)](docs/presentation/slides/slide-04.png) |
+| [![Слайд 5](docs/presentation/slides/slide-05.png)](docs/presentation/slides/slide-05.png) | [![Слайд 6](docs/presentation/slides/slide-06.png)](docs/presentation/slides/slide-06.png) | [![Слайд 7](docs/presentation/slides/slide-07.png)](docs/presentation/slides/slide-07.png) |
+| [![Слайд 8](docs/presentation/slides/slide-08.png)](docs/presentation/slides/slide-08.png) | [![Слайд 9](docs/presentation/slides/slide-09.png)](docs/presentation/slides/slide-09.png) | [Скачать .pptx](docs/presentation/office-mcp.pptx) · [PDF](docs/presentation/pdf/office-mcp.pdf) |
+
+### Разбор по слайдам
+
+**01 · Обложка — «MCP-мост Office».**
+Чат OpenCode не умеет работать с настоящими офисными файлами: он видит текст, но не документ. Мост закрывает этот разрыв: 53 инструмента, реальные `.docx` / `.xlsx` / `.pptx`, Windows.
+
+**02 · Контекст — зачем нужен мост.**
+Чат умеет говорить, но не умеет работать с файлами Office. Мост превращает вызовы инструментов в COM-команды к Word, Excel и PowerPoint. На выходе — настоящие файлы, а не текстовые заготовки: документ создаёт само приложение Office, поэтому форматирование, стили, формулы и диаграммы остаются подлинными, а не эмулируются парсером OpenXML.
+
+**03 · Архитектура — четыре звена.**
+`Чат (OpenCode, любая сессия)` → `MCP-сервер (stdio, 53 инструмента)` → `COM-поток (STA, очередь задач)` → `Office (Word · Excel · PowerPoint)`. Вызов инструмента уходит в очередь, COM-поток выполняет его в приложении и возвращает JSON. Один поток, последовательные операции, понятные ошибки — вместо гонок между параллельными вызовами.
+
+**04 · Исполнение — почему отдельный COM-поток.**
+Office — apartment-bound COM-серверы: вызов из чужого потока ненадёжен, а объект, созданный в одном потоке, нельзя использовать в другом. Поэтому все операции идут через один STA-поток и очередь задач. Занятые вызовы (`RPC_E_CALL_REJECTED`, `RPC_E_SERVERCALL_RETRYLATER`) повторяются, таймаут 180 с ловит модальные диалоги, а упавший экземпляр определяется по `RPC_E_DISCONNECTED` и пересоздаётся. Приложение переиспользуется: `GetActiveObject` для запущенного, `DispatchEx` для нового. Один поток — не узкое место, а способ сделать поведение предсказуемым.
+
+**05 · Координация — один мост, несколько чатов.**
+Три сессии OpenCode не могут одновременно управлять Office. Именованный мьютекс `Local\OfficeMCP_Bridge_Serial` сериализует вызовы между процессами. Второй чат ждёт до 60 секунд и получает ошибку `Another Office MCP session is busy`, а не повреждённый документ.
+
+**06 · Инструменты — 53 штуки.**
+Word — 19 (документы, таблицы, PDF), Excel — 17 (книги, диаграммы, формулы), PowerPoint — 13 (слайды, текст, PDF), общие — 4 (статус, показ, выход). Единый контракт: JSON-ответ, явное сохранение, экспорт PDF сначала сохраняет исходник.
+
+**07 · Файлы — пути.**
+Относительные пути разрешаются от `%USERPROFILE%\Documents\Office MCP`; новый файл без пути сохраняется туда автоматически; `OFFICE_MCP_BASE_DIR` меняет базовый каталог. Правило простое: пользователь назвал файл — мост работает с ним, не назвал — создаёт в `Documents\Office MCP`.
+
+**08 · Границы — ограничения и безопасность.**
+Полный COM-доступ под учётной записью пользователя: изоляции нет, это не sandbox — мост делает ровно то, что может делать сам пользователь в Office. PowerPoint всегда виден, Word и Excel можно скрыть. Модальный диалог приводит к таймауту, а не к вечному зависанию. Сетевых портов нет: только stdio между клиентом и сервером.
+
+**09 · Итог.**
+Один чат. Три приложения. Реальные файлы. `MCP` — интерфейс, `COM` — исполнение, мьютекс — предсказуемость.
+
+Исходник презентации — [`docs/presentation/office-mcp.pptx`](docs/presentation/office-mcp.pptx), PDF — [`docs/presentation/pdf/office-mcp.pdf`](docs/presentation/pdf/office-mcp.pdf).
+
 ## Тесты
 
 ```powershell
