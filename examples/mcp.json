@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "office": {
+      "command": "C:\\path\\to\\office-mcp\\.venv\\Scripts\\python.exe",
+      "args": ["-X", "utf8", "C:\\path\\to\\office-mcp\\server.py"]
+    }
+  }
+}

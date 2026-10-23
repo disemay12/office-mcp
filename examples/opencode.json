@@ -1,0 +1,20 @@
+{
+  "mcp": {
+    "servers": {
+      "office": {
+        "type": "local",
+        "command": [
+          "C:/path/to/office-mcp/.venv/Scripts/python.exe",
+          "-X",
+          "utf8",
+          "C:/path/to/office-mcp/server.py"
+        ],
+        "timeout": {
+          "startup": 60000,
+          "catalog": 120000,
+          "execution": 300000
+        }
+      }
+    }
+  }
+}

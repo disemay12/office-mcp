@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  compile:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Byte-compile
+        run: python -m compileall -q com.py server.py word_api.py excel_api.py ppt_api.py tests
+      - name: Check server module imports
+        run: python -c "import server; print('server imports OK')"
