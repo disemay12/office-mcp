@@ -37,7 +37,7 @@ Most "office" MCP servers parse OpenXML files or re-implement a document model. 
 
 - **Windows 10/11** with desktop **Microsoft Word, Excel and PowerPoint** installed (Microsoft 365 or Office 2016+).
 - **Python 3.10+** (tested on 3.14).
-- Packages: `mcp>=1.10`, `pywin32>=306`.
+- Packages: `mcp>=1.10,<2` (SDK 2.x renamed `FastMCP`; this bridge targets 1.x), `pywin32>=306`.
 
 > Word, Excel and PowerPoint are independent — install only what you need; tools for missing apps return a clear error.
 
